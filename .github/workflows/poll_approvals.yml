@@ -1,0 +1,36 @@
+name: Poll Deep Dive Approvals
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'  # Every 15 minutes
+  workflow_dispatch:
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
+      SUPABASE_URL:          ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY:     ${{ secrets.SUPABASE_ANON_KEY }}
+      NOTION_TOKEN:          ${{ secrets.NOTION_TOKEN }}
+      NOTION_QUEUE_DB_ID:    ${{ secrets.NOTION_QUEUE_DB_ID }}
+      NOTION_OUTPUTS_DB_ID:  ${{ secrets.NOTION_OUTPUTS_DB_ID }}
+      NOTION_BUDGET_DB_ID:   ${{ secrets.NOTION_BUDGET_DB_ID }}
+      PORTFOLIO_TICKERS:     ${{ secrets.PORTFOLIO_TICKERS }}
+      OBSIDIAN_VAULT_PATH:   '/tmp/obsidian-outputs'
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run poll
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deepdive-outputs-${{ github.run_id }}
+          path: /tmp/obsidian-outputs/
+          retention-days: 30
+          if-no-files-found: ignore

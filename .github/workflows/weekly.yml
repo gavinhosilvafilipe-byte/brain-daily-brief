@@ -1,0 +1,35 @@
+name: Weekly Distillation
+
+on:
+  schedule:
+    - cron: '0 10 * * 0'  # Sunday 10:00 UTC = 18:00 China
+  workflow_dispatch:
+
+jobs:
+  distill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
+      SUPABASE_URL:          ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY:     ${{ secrets.SUPABASE_ANON_KEY }}
+      NOTION_TOKEN:          ${{ secrets.NOTION_TOKEN }}
+      NOTION_OUTPUTS_DB_ID:  ${{ secrets.NOTION_OUTPUTS_DB_ID }}
+      NOTION_BUDGET_DB_ID:   ${{ secrets.NOTION_BUDGET_DB_ID }}
+      PORTFOLIO_TICKERS:     ${{ secrets.PORTFOLIO_TICKERS }}
+      OBSIDIAN_VAULT_PATH:   '/tmp/obsidian-outputs'
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run distill
+      - uses: actions/upload-artifact@v4
+        with:
+          name: weekly-distill-${{ github.run_id }}
+          path: /tmp/obsidian-outputs/
+          retention-days: 30
+          if-no-files-found: ignore
