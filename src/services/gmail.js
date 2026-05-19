@@ -17,16 +17,16 @@ function createTransporter() {
 
 async function sendBrief(subject, htmlContent) {
   if (!config.gmail.refreshToken) {
-    console.warn('[gmail] no refresh token — run: npm run gmail-setup');
-    return;
+    throw new Error('GMAIL_REFRESH_TOKEN not set — run: npm run gmail-setup');
   }
   const transporter = createTransporter();
-  return transporter.sendMail({
+  const info = await transporter.sendMail({
     from: config.gmail.recipientEmail,
-    to: config.gmail.recipientEmail,
+    to:   config.gmail.recipientEmail,
     subject,
     html: htmlContent,
   });
+  return info;
 }
 
 module.exports = { sendBrief };

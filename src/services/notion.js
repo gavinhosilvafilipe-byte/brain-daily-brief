@@ -60,7 +60,10 @@ async function updateDeepDiveStatus(pageId, status, outputLink) {
   return notion.pages.update({ page_id: pageId, properties: props });
 }
 
-async function logOutput({ date, briefType, tickersMentioned, whyMovedCount, deepDivesRun, costTokens, sourcesUsed, keyThemes, briefLink }) {
+async function logOutput({ date, briefType, tickersMentioned, whyMovedCount, deepDivesRun, costTokens, sourcesUsed, keyThemes, briefLink, priceSnapshot, analysis }) {
+  // Build rich page body blocks for Notion
+  const children = buildBriefPageBlocks({ date, briefType, tickersMentioned, whyMovedCount, costTokens, sourcesUsed, keyThemes, priceSnapshot, analysis });
+
   return notion.pages.create({
     parent: { database_id: DBS.outputs },
     properties: {
@@ -74,7 +77,132 @@ async function logOutput({ date, briefType, tickersMentioned, whyMovedCount, dee
       'Key Themes':           { rich_text: [{ text: { content: (keyThemes || []).join(', ') } }] },
       ...(briefLink ? { 'Brief HTML Link': { url: briefLink } } : {}),
     },
+    children,
   });
+}
+
+// ── Rich Notion page blocks for daily brief ─────────────────────────────
+function buildBriefPageBlocks({ date, briefType, tickersMentioned, whyMovedCount, costTokens, sourcesUsed, keyThemes, priceSnapshot, analysis }) {
+  const blocks = [];
+
+  // Header callout
+  blocks.push({
+    object: 'block', type: 'callout',
+    callout: {
+      icon: { type: 'emoji', emoji: '🧠' },
+      rich_text: [{ type: 'text', text: { content: `BRAIN ${briefType === 'daily' ? 'Daily' : 'Weekly'} Brief — ${date}` }, annotations: { bold: true } }],
+      color: 'blue_background',
+    },
+  });
+
+  blocks.push({ object: 'block', type: 'divider', divider: {} });
+
+  // ── Portfolio Dashboard ──
+  if (priceSnapshot?.prices && Object.keys(priceSnapshot.prices).length > 0) {
+    blocks.push({
+      object: 'block', type: 'heading_2',
+      heading_2: { rich_text: [{ type: 'text', text: { content: '💼 Portfolio Dashboard' } }] },
+    });
+
+    const tickers = Object.values(priceSnapshot.prices);
+    const tableRows = [
+      {
+        object: 'block', type: 'table_row',
+        table_row: { cells: [
+          [{ type: 'text', text: { content: 'Ticker' }, annotations: { bold: true } }],
+          [{ type: 'text', text: { content: 'Price' }, annotations: { bold: true } }],
+          [{ type: 'text', text: { content: 'Change %' }, annotations: { bold: true } }],
+          [{ type: 'text', text: { content: 'Currency' }, annotations: { bold: true } }],
+        ]},
+      },
+      ...tickers.map(t => ({
+        object: 'block', type: 'table_row',
+        table_row: { cells: [
+          [{ type: 'text', text: { content: t.ticker || '—' } }],
+          [{ type: 'text', text: { content: t.price != null ? String(Number(t.price).toFixed(2)) : '—' } }],
+          [{ type: 'text', text: { content: t.changePct != null ? `${t.changePct >= 0 ? '+' : ''}${Number(t.changePct).toFixed(2)}%` : '—' }, annotations: { color: t.changePct >= 0 ? 'green' : 'red' } }],
+          [{ type: 'text', text: { content: t.currency || '—' } }],
+        ]},
+      })),
+    ];
+
+    blocks.push({
+      object: 'block', type: 'table',
+      table: { table_width: 4, has_column_header: true, has_row_header: false, children: tableRows },
+    });
+
+    if (priceSnapshot.movers?.length > 0) {
+      const moverText = priceSnapshot.movers.map(m =>
+        `${m.ticker} ${m.changePct >= 0 ? '📈' : '📉'} ${m.changePct >= 0 ? '+' : ''}${Number(m.changePct).toFixed(2)}%`
+      ).join('  •  ');
+      blocks.push({
+        object: 'block', type: 'callout',
+        callout: {
+          icon: { type: 'emoji', emoji: '⚡' },
+          rich_text: [{ type: 'text', text: { content: `Big Movers: ${moverText}` } }],
+          color: 'yellow_background',
+        },
+      });
+    }
+  }
+
+  // ── Why Moved Analysis ──
+  const whyMoved = analysis?.why_moved_payload?.why_moved || [];
+  if (whyMoved.length > 0) {
+    blocks.push({ object: 'block', type: 'divider', divider: {} });
+    blocks.push({
+      object: 'block', type: 'heading_2',
+      heading_2: { rich_text: [{ type: 'text', text: { content: '🔍 Why Things Moved' } }] },
+    });
+
+    for (const item of whyMoved.slice(0, 8)) {
+      const conf = item.confidence || 'Med';
+      const confEmoji = conf === 'High' ? '🟢' : conf === 'Med' ? '🟡' : '🔴';
+      const drivers = (item.drivers || []).join(', ');
+      const deepDiveFlag = item.flag_for_deepdive ? ' → 🔬 Deep Dive Recommended' : '';
+
+      blocks.push({
+        object: 'block', type: 'bulleted_list_item',
+        bulleted_list_item: {
+          rich_text: [
+            { type: 'text', text: { content: `${item.ticker}` }, annotations: { bold: true } },
+            { type: 'text', text: { content: ` ${confEmoji} ${conf} — ${drivers}${deepDiveFlag}` } },
+          ],
+        },
+      });
+    }
+  }
+
+  // ── Stats Summary ──
+  blocks.push({ object: 'block', type: 'divider', divider: {} });
+  blocks.push({
+    object: 'block', type: 'heading_2',
+    heading_2: { rich_text: [{ type: 'text', text: { content: '📊 Brief Stats' } }] },
+  });
+
+  const statsText = [
+    `Sources: ${sourcesUsed || 0}`,
+    `Tokens: ${(costTokens || 0).toLocaleString()}`,
+    `Why Moved: ${whyMovedCount || 0} candidates`,
+    `Themes: ${(keyThemes || []).join(', ')}`,
+    `Tickers: ${(tickersMentioned || []).join(', ')}`,
+  ].join('\n');
+
+  blocks.push({
+    object: 'block', type: 'quote',
+    quote: { rich_text: [{ type: 'text', text: { content: statsText } }], color: 'gray_background' },
+  });
+
+  // Footer
+  blocks.push({ object: 'block', type: 'divider', divider: {} });
+  blocks.push({
+    object: 'block', type: 'paragraph',
+    paragraph: {
+      rich_text: [{ type: 'text', text: { content: `Generated by BRAIN • ${new Date().toISOString()} • Data may be delayed` }, annotations: { italic: true, color: 'gray' } }],
+    },
+  });
+
+  return blocks;
 }
 
 async function logBudget({ date, haikuCalls, haikuCost, sonnetCalls, sonnetCost, deepDivesRun, monthlyTotal, monthProjected, alertThreshold }) {

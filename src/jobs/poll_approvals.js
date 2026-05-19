@@ -1,5 +1,5 @@
 'use strict';
-require('dotenv').config();
+require('dotenv').config({ override: true });
 const { getApprovedDeepDives, updateDeepDiveStatus } = require('../services/notion');
 const { run: runDeepDive } = require('./deepdive');
 

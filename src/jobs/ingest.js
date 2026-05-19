@@ -1,5 +1,5 @@
 'use strict';
-require('dotenv').config();
+require('dotenv').config({ override: true });
 const { callHaiku }          = require('../services/anthropic');
 const { insertPack, checkPackExists } = require('../services/supabase');
 const { fetchMarketNews }    = require('../services/newsapi');

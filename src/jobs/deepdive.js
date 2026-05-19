@@ -1,5 +1,5 @@
 'use strict';
-require('dotenv').config();
+require('dotenv').config({ override: true });
 const fs   = require('fs');
 const path = require('path');
 const { callSonnet, callOpus } = require('../services/anthropic');
@@ -22,7 +22,11 @@ async function run(candidate) {
     bigMoveThreshold: config.portfolio.bigMoveThreshold,
   });
 
-  const result = await callFn([{ role: 'user', content: prompt }], DEEP_DIVE_HTML_SYSTEM, 'deepdive');
+  const result = await callFn(
+    [{ role: 'user', content: prompt }],
+    DEEP_DIVE_HTML_SYSTEM, 'deepdive',
+    { cacheContent: true, maxTokens: 5000 }
+  );
 
   const filename  = `${today}-${ticker.toLowerCase().replace(/[^a-z0-9]/g, '-')}-deepdive.html`;
   const outputDir = path.join(config.obsidian.vaultPath, '03-OUTPUT', 'DEEPDIVES');

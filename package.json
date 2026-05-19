@@ -12,10 +12,12 @@
     "distill": "node src/jobs/distill_weekly.js",
     "poll": "node src/jobs/poll_approvals.js",
     "budget": "node src/jobs/budget_rollup.js",
-    "gmail-setup": "node scripts/gmail-oauth-setup.js"
+    "gmail-setup": "node scripts/gmail-oauth-setup.js",
+    "prices": "node src/jobs/fetch_prices.js"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.30.0",
+    "@anthropic-ai/sdk": "^0.55.0",
+    "node-cron": "^3.0.0",
     "@notionhq/client": "^2.3.0",
     "@supabase/supabase-js": "^2.43.0",
     "axios": "^1.7.0",

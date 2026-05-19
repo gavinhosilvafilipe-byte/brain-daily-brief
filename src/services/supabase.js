@@ -17,8 +17,8 @@ async function insertPack(packType, content, sourceHash) {
 
 async function getPacksForDate(date) {
   const d = new Date(date);
-  const start = new Date(d); start.setHours(0, 0, 0, 0);
-  const end   = new Date(d); end.setHours(23, 59, 59, 999);
+  const start = new Date(d); start.setUTCHours(0, 0, 0, 0);
+  const end   = new Date(d); end.setUTCHours(23, 59, 59, 999);
   const { data, error } = await supabase
     .from('packs').select('*')
     .gte('created_at', start.toISOString())
@@ -54,7 +54,12 @@ async function getDailyCosts(date) {
 }
 
 async function getMonthlyCosts(yearMonth) {
-  const { data, error } = await supabase.from('cost_log').select('*').like('date', `${yearMonth}%`);
+  // DATE column doesn't support LIKE — use range query instead
+  const [year, month] = yearMonth.split('-').map(Number);
+  const start = `${yearMonth}-01`;
+  const nextM = month === 12 ? `${year + 1}-01-01` : `${year}-${String(month + 1).padStart(2, '0')}-01`;
+  const { data, error } = await supabase.from('cost_log').select('*')
+    .gte('date', start).lt('date', nextM);
   if (error) throw error;
   return data || [];
 }
@@ -73,4 +78,35 @@ async function getDailyAnalysis(date) {
   return data;
 }
 
-module.exports = { insertPack, getPacksForDate, checkPackExists, logCost, getDailyCosts, getMonthlyCosts, saveDailyAnalysis, getDailyAnalysis };
+async function savePriceSnapshot(date, snapshot) {
+  const { error } = await supabase.from('price_snapshots').upsert(
+    {
+      date,
+      snapshot:   snapshot.prices,
+      movers:     snapshot.movers,
+      fetched_at: snapshot.fetchedAt,
+    },
+    { onConflict: 'date' }
+  );
+  if (error) throw error;
+}
+
+async function getPriceSnapshot(date) {
+  const { data, error } = await supabase
+    .from('price_snapshots').select('snapshot,movers,fetched_at').eq('date', date).maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    prices:    data.snapshot,
+    movers:    data.movers    || [],
+    fetchedAt: data.fetched_at,
+    threshold: parseFloat(process.env.BIG_MOVE_THRESHOLD || '3.0'),
+  };
+}
+
+module.exports = {
+  insertPack, getPacksForDate, checkPackExists,
+  logCost, getDailyCosts, getMonthlyCosts,
+  saveDailyAnalysis, getDailyAnalysis,
+  savePriceSnapshot, getPriceSnapshot,
+};

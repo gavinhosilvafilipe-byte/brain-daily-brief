@@ -1,12 +1,13 @@
 'use strict';
-require('dotenv').config();
-const { callHaiku }           = require('../services/anthropic');
-const { getPacksForDate, saveDailyAnalysis } = require('../services/supabase');
-const { addDeepDiveCandidate } = require('../services/notion');
+require('dotenv').config({ override: true });
+const { callHaiku }                            = require('../services/anthropic');
+const { getPacksForDate, saveDailyAnalysis, getPriceSnapshot } = require('../services/supabase');
+const { addDeepDiveCandidate }                 = require('../services/notion');
+const { formatSnapshotForPrompt }              = require('../services/portfolio');
 const config = require('../config');
 
 const SYSTEM = `You analyze news packs and portfolio holdings to find "why things moved" and identify deep dive candidates.
-INPUT: News packs (JSON) + portfolio tickers + move threshold: ${3.0}%
+INPUT: News packs (JSON) + portfolio tickers + move threshold: ${config.portfolio.bigMoveThreshold}%
 TASK:
 1. For each portfolio ticker, score news impact 1-10
 2. Identify top 5 "why moved" drivers with confidence (Low/Med/High)
@@ -31,14 +32,20 @@ async function run() {
   console.log('[analyze] start', new Date().toISOString());
   const today = new Date().toISOString().split('T')[0];
 
-  const packs = await getPacksForDate(new Date());
+  const [packs, priceSnapshot] = await Promise.all([
+    getPacksForDate(new Date()),
+    getPriceSnapshot(today).catch(() => null),
+  ]);
+
   if (!packs.length) { console.log('[analyze] no packs today, skipping'); return; }
 
-  const packsText   = packs.map(p => `## ${p.pack_type}\n${JSON.stringify(p.content, null, 2)}`).join('\n\n---\n\n');
+  // Compact JSON (no pretty-print) saves ~30% tokens on pack payloads
+  const packsText     = packs.map(p => `## ${p.pack_type}\n${JSON.stringify(p.content)}`).join('\n\n---\n\n');
+  const pricesText    = formatSnapshotForPrompt(priceSnapshot);
   const portfolioText = `Portfolio: ${config.portfolio.tickers.join(', ')}`;
 
   const result = await callHaiku(
-    [{ role: 'user', content: `${portfolioText}\n\n${packsText}` }],
+    [{ role: 'user', content: `${pricesText}\n\n${portfolioText}\n\n${packsText}` }],
     SYSTEM, 'analyze'
   );
 

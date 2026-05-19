@@ -1,5 +1,5 @@
 'use strict';
-require('dotenv').config();
+require('dotenv').config({ override: true });
 const { getDailyCosts, getMonthlyCosts } = require('../services/supabase');
 const { logBudget } = require('../services/notion');
 
