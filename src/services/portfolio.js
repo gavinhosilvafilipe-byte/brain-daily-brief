@@ -37,16 +37,24 @@ async function fetchB3(tickers) {
   return out;
 }
 
-// ── Source 2: CoinGecko — BTC/USD (free, no key) ────────────────────────
-async function fetchBTC() {
+// ── Source 2: CoinGecko — BTC + ETH in USD (free, no key) ───────────────
+async function fetchCrypto(tickers) {
+  const coinMap = { BTC: 'bitcoin', ETH: 'ethereum' };
+  const ids = tickers.filter(t => coinMap[t]).map(t => coinMap[t]).join(',');
+  if (!ids) return {};
   const resp = await axios.get('https://api.coingecko.com/api/v3/simple/price', {
-    params: { ids: 'bitcoin', vs_currencies: 'usd', include_24hr_change: 'true' },
+    params: { ids, vs_currencies: 'usd', include_24hr_change: 'true' },
     timeout: 10000,
   });
-  const b = resp.data?.bitcoin;
-  if (!b) return null;
-  return { ticker: 'BTC', price: b.usd ?? null, changePct: b.usd_24h_change ?? null,
-    change: null, prevClose: null, volume: null, currency: 'USD', timestamp: new Date().toISOString() };
+  const out = {};
+  for (const [ticker, coinId] of Object.entries(coinMap)) {
+    if (!tickers.includes(ticker)) continue;
+    const d = resp.data?.[coinId];
+    if (!d) continue;
+    out[ticker] = { ticker, price: d.usd ?? null, changePct: d.usd_24h_change ?? null,
+      change: null, prevClose: null, volume: null, currency: 'USD', timestamp: new Date().toISOString() };
+  }
+  return out;
 }
 
 // ── Source 3: AwesomeAPI — USDBRL (free, no key) ────────────────────────
@@ -60,16 +68,16 @@ async function fetchUSDRBL() {
 }
 
 async function fetchPrices(tickers = config.portfolio.tickers) {
-  const [stocks, btc, fx] = await Promise.allSettled([
+  const [stocks, crypto, fx] = await Promise.allSettled([
     fetchB3(tickers),
-    tickers.includes('BTC')    ? fetchBTC()    : Promise.resolve(null),
+    fetchCrypto(tickers),
     tickers.includes('USDBRL') ? fetchUSDRBL() : Promise.resolve(null),
   ]);
   const map = {};
   if (stocks.status === 'fulfilled') Object.assign(map, stocks.value);
   else console.error('[portfolio] B3 failed:', stocks.reason?.message);
-  if (btc.status === 'fulfilled' && btc.value) map.BTC = btc.value;
-  else if (btc.status === 'rejected') console.error('[portfolio] BTC failed:', btc.reason?.message);
+  if (crypto.status === 'fulfilled') Object.assign(map, crypto.value);
+  else console.error('[portfolio] crypto failed:', crypto.reason?.message);
   if (fx.status === 'fulfilled' && fx.value) map.USDBRL = fx.value;
   else if (fx.status === 'rejected') console.error('[portfolio] USDBRL failed:', fx.reason?.message);
   return map;
