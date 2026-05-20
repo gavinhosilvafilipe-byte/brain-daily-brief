@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
       ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
       SUPABASE_URL:          ${{ secrets.SUPABASE_URL }}
       SUPABASE_ANON_KEY:     ${{ secrets.SUPABASE_ANON_KEY }}
@@ -45,6 +46,9 @@ jobs:
 
       - name: Run Ingest
         run: npm run ingest
+
+      - name: Run Prices
+        run: npm run prices
 
       - name: Run Analyze
         run: npm run analyze
