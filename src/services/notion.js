@@ -61,7 +61,6 @@ async function updateDeepDiveStatus(pageId, status, outputLink) {
 }
 
 async function logOutput({ date, briefType, tickersMentioned, whyMovedCount, deepDivesRun, costTokens, sourcesUsed, keyThemes, briefLink, priceSnapshot, analysis }) {
-  // Build rich page body blocks for Notion
   const children = buildBriefPageBlocks({ date, briefType, tickersMentioned, whyMovedCount, costTokens, sourcesUsed, keyThemes, priceSnapshot, analysis });
 
   return notion.pages.create({
@@ -71,9 +70,9 @@ async function logOutput({ date, briefType, tickersMentioned, whyMovedCount, dee
       'Brief Type':           { select:    { name: briefType } },
       'Tickers Mentioned':    { rich_text: [{ text: { content: (tickersMentioned || []).join(', ') } }] },
       'Why Moved Candidates': { number: whyMovedCount || 0 },
-      'Deep Dives Run Today': { number: deepDivesRun || 0 },
-      'Cost Tokens':          { number: costTokens || 0 },
-      'Sources Used':         { number: sourcesUsed || 0 },
+      'Deep Dives Run Today': { number: deepDivesRun  || 0 },
+      'Cost Tokens':          { number: costTokens    || 0 },
+      'Sources Used':         { number: sourcesUsed   || 0 },
       'Key Themes':           { rich_text: [{ text: { content: (keyThemes || []).join(', ') } }] },
       ...(briefLink ? { 'Brief HTML Link': { url: briefLink } } : {}),
     },
@@ -222,4 +221,32 @@ async function logBudget({ date, haikuCalls, haikuCost, sonnetCalls, sonnetCost,
   });
 }
 
-module.exports = { getSettings, addDeepDiveCandidate, getApprovedDeepDives, updateDeepDiveStatus, logOutput, logBudget };
+// Log triaged emails to the 📥 Inbox Triage database. Skips noise (NEWSLETTER importance<2).
+async function logTriage(items) {
+  if (!DBS.triage) { console.warn('[notion] NOTION_TRIAGE_DB_ID not set — skipping'); return 0; }
+  const now = new Date().toISOString();
+  const worth = items.filter(it => it.importance >= 2 || it.action || ['HKUST', 'FINANCE', 'ACTION'].includes(it.category));
+  let n = 0;
+  for (const it of worth) {
+    try {
+      await notion.pages.create({
+        parent: { database_id: DBS.triage },
+        properties: {
+          'Subject':      { title:     [{ text: { content: (it.subject || '(no subject)').slice(0, 200) } }] },
+          'Category':     { select:    { name: it.category } },
+          'Importance':   { number:    it.importance || 1 },
+          'Summary':      { rich_text: [{ text: { content: (it.summary || '').slice(0, 1900) } }] },
+          'From':         { rich_text: [{ text: { content: (it.from || '').slice(0, 200) } }] },
+          'Action Needed':{ checkbox:  !!it.action },
+          'Triaged At':   { date:      { start: now } },
+          ...(it.eventDate ? { 'Event Date': { date: { start: it.eventDate } } } : {}),
+        },
+      });
+      n++;
+    } catch (e) { console.error(`[notion] triage log fail: ${e.message}`); }
+  }
+  console.log(`[notion] logged ${n}/${items.length} triaged emails`);
+  return n;
+}
+
+module.exports = { getSettings, addDeepDiveCandidate, getApprovedDeepDives, updateDeepDiveStatus, logOutput, logBudget, logTriage };
