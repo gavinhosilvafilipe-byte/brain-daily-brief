@@ -9,7 +9,7 @@ const config = require('../config');
 
 const SYSTEM = `You analyze news packs and portfolio holdings to find "why things moved" and identify deep dive candidates.
 INPUT: News packs (JSON) + portfolio tickers + move threshold: ${config.portfolio.bigMoveThreshold}%
-If EXISTING STOCK MEMORY is provided, check it first before concluding a reason is unknown — it may already explain today's move.
+If EXISTING STOCK MEMORY is provided, use it to deepen the WHY explanation — connect today's move to the historical catalyst (e.g. "VALE3 +5% today is continuation of the Carajás expansion announced 2026-04-10: steel demand thesis playing out ahead of 2028 ramp"). Always state the transmission mechanism. Never just say "same driver as yesterday" — explain WHY that driver is still moving the price.
 TASK:
 1. For each portfolio ticker, score news impact 1-10
 2. Identify top 5 "why moved" drivers with confidence (Low/Med/High)
