@@ -1,11 +1,11 @@
 'use strict';
 require('dotenv').config({ override: true });
 const { callSonnet }       = require('../services/anthropic');
-const { getPacksForDate, getDailyAnalysis, getPriceSnapshot } = require('../services/supabase');
+const { getPacksForDate, getDailyAnalysis, getPriceSnapshot, getPrecoTeto } = require('../services/supabase');
 const { logOutput }        = require('../services/notion');
 const { sendBrief }        = require('../services/gmail');
 const { DAILY_BRIEF_HTML_SYSTEM, buildDailyBriefPrompt } = require('../prompts/sonnet/daily_brief_html');
-const { run: budgetRollup } = require('./budget_rollup');
+const { readNote }         = require('../services/obsidian');
 const config = require('../config');
 
 async function run() {
@@ -18,7 +18,19 @@ async function run() {
     getPriceSnapshot(today).catch(() => null),
   ]);
 
-  const prompt = buildDailyBriefPrompt(packs, analysis, today, priceSnapshot);
+  const legacyVal = readNote('STOCK/valuations/_summary.md') || '';
+  // Preço Teto: Supabase (CI, written by weekly local run.sh push) → vault note fallback (local).
+  let tetoMd = '';
+  try { tetoMd = (await getPrecoTeto())?.markdown || ''; } catch (e) { console.error('[brief] preco_teto read:', e.message); }
+  if (!tetoMd) tetoMd = readNote('STOCK/preco-teto.md') || '';
+  const tetoSlice = (() => {
+    const i = tetoMd.indexOf('## §1');
+    const j = tetoMd.indexOf('## §4');
+    return i >= 0 && j > i ? tetoMd.slice(i, j).trim() : (tetoMd.trim());
+  })();
+  const valuationCache = [tetoSlice && `# PREÇO TETO (composite ceilings)\n${tetoSlice}`, legacyVal]
+    .filter(Boolean).join('\n\n');
+  const prompt = buildDailyBriefPrompt(packs, analysis, today, priceSnapshot, valuationCache);
   // cacheContent=true: packs cached at '---' boundary; maxTokens=3000 caps HTML output
   const result = await callSonnet(
     [{ role: 'user', content: prompt }],
@@ -56,8 +68,6 @@ async function run() {
   }
 
   console.log(`[brief] complete. Cost: $${result.costUsd.toFixed(6)}`);
-
-  await budgetRollup().catch(e => console.error('[brief] budget rollup failed:', e.message));
 }
 
 module.exports = { run };

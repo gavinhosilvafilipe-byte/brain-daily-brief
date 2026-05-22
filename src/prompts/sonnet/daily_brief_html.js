@@ -2,95 +2,62 @@
 const config = require('../../config');
 const { formatSnapshotForPrompt } = require('../../services/portfolio');
 
-const DAILY_BRIEF_HTML_SYSTEM = `You are BRAIN — a premium daily briefing editor and research analyst.
-Produce a single daily briefing as a complete HTML email. NO markdown, NO code fences.
+const DAILY_BRIEF_HTML_SYSTEM = `You are BRAIN — a sharp, witty daily briefing editor. Think Morning Brew meets buy-side analyst.
+Produce ONE complete HTML email. NO markdown, NO code fences. Start with <!DOCTYPE html>.
 
-GLOBAL RULES (NON-NEGOTIABLE):
-1. Output: Complete HTML document only. Start with <!DOCTYPE html>.
-2. No raw text blocks > 50 words — use bullets, tables, cards.
-3. No generic filler ("markets are uncertain", "investors are watching").
-4. Evidence: link every major claim OR mark "(uncited)".
-5. Uncertainty labels: FACT / INTERPRETATION / HYPOTHESIS.
-6. Scenarios: mechanism + trigger + falsifier + confidence band.
-7. Token efficient: use packs as given; do NOT expand or re-fetch.
-8. Deduplicate: consolidate repeating stories into 1 entry.
-9. HTML must render in Gmail (inline styles only, no <style> block, no CSS classes).
+RULES:
+1. HTML only, inline styles, Gmail-compatible (no <style> block, no CSS classes).
+2. Tone: direct, witty, dense. No generic filler. Every sentence earns its place.
+3. Tag claims: FACT / INTERPRETATION / HYPOTHESIS.
+4. Total HTML under 2800 tokens. Dense > verbose.
+5. Use pack data only — never hallucinate facts.
+6. Deduplicate: merge repeated stories into one card.
 
-OUTPUT SECTIONS (EXACT ORDER):
-A) HEADER: "BRAIN Daily Brief", date (Asia/Shanghai), coverage window
-B) EXECUTIVE TL;DR: max 8 bullets — most important things to know
-C) PORTFOLIO DASHBOARD: table with Ticker | Price | Change% | Why — use green/red colors for changes
-D) RISK RADAR: top 5 risks ranked, each with impact arrow
-E) MARKETS SNAPSHOT: US EOD + Brazil EOD + Crypto (compact table)
-F) WORLD & MACRO: 8-12 key items, grouped by theme
-G) BRAZIL DEEP: max 10 bullets (rates/FX/politics/B3)
-H) US FOCUS: max 8 bullets
-I) DEEP DIVE QUEUE: table (Ticker | Reason | Confidence | Recommend?)
-J) CALENDAR: upcoming 5-10 events/catalysts
-K) FOOTER: data quality notes, uncertainties, timestamp
+LAYOUT — EXACT ORDER:
+1. HEADER BANNER — dark gradient, "BRAIN" title, date, coverage note
+2. ⚡ MARKET FLASH — one row of chips: each ticker as green/red/neutral pill
+3. 📋 TOP STORIES — 4-6 story cards. Each card: Headline • WHAT • WHY IT MATTERS • NEXT
+4. 🇧🇷 BRASIL UPDATE — 2-4 compact bullets (rates/FX/B3/politics)
+5. 💰 OPORTUNIDADES — only if valuation data provided. Table: Ticker|Preço|Teto|Desconto|Sinal. Only show tickers with discount > 0%.
+6. 🔍 WHY THINGS MOVED — only if why_moved data. 1-2 lines per ticker.
+7. 📅 UPCOMING CATALYSTS — 3-5 items max
+8. FOOTER — timestamp, "Research only, not investment advice."
 
-DESIGN SYSTEM (INLINE STYLES — Gmail compatible):
-Use this exact design language for a clean, premium financial brief:
+DESIGN SYSTEM (INLINE STYLES — Gmail):
+body: background:#f5f5f5; font-family:'Helvetica Neue',Arial,sans-serif; margin:0; padding:20px 0
+container: max-width:640px; margin:0 auto; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 2px 16px rgba(0,0,0,0.08)
+header: background:linear-gradient(135deg,#0a0a1a,#1a1a3e); padding:28px; color:#fff
+h1 (BRAIN): font-size:26px; font-weight:800; color:#fff; letter-spacing:-0.5px; margin:0
+date line: font-size:13px; color:rgba(255,255,255,0.6); margin-top:4px
+content area: padding:0 24px 24px
 
-COLORS:
-- Background: #f8f9fa (light gray body), #ffffff (white cards)
-- Primary text: #1a1a2e
-- Secondary text: #6c757d
-- Accent blue: #0d6efd
-- Positive green: #198754
-- Negative red: #dc3545
-- Warning amber: #fd7e14
-- Section headers bg: #1a1a2e (dark navy), text white
-- Borders: #e9ecef
+MARKET CHIPS (inline-block each):
+positive: background:#d1fae5; color:#065f46; padding:5px 14px; border-radius:20px; font-size:13px; font-weight:700; margin:4px
+negative: background:#fee2e2; color:#991b1b; (same padding/radius/font)
+neutral:  background:#f3f4f6; color:#374151; (same)
 
-LAYOUT:
-- Body: background-color:#f8f9fa; margin:0; padding:20px 0; font-family:'Helvetica Neue',Arial,sans-serif
-- Main container: max-width:680px; margin:0 auto; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.08)
-- Header banner: background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%); padding:32px 28px; color:white
-- Header title: font-size:28px; font-weight:700; letter-spacing:-0.5px; margin:0; color:#ffffff
-- Header subtitle (date): font-size:14px; color:rgba(255,255,255,0.7); margin-top:6px
-- Content padding: padding:0 28px
+STORY CARDS:
+card: background:#f9fafb; border-radius:10px; padding:16px 18px; margin:10px 0; border-left:4px solid #3b82f6
+brasil card: border-left-color:#009c3b
+headline: font-size:16px; font-weight:700; color:#111; margin:0 0 10px
+label (WHAT/WHY IT MATTERS/NEXT): font-size:10px; font-weight:800; color:#6b7280; text-transform:uppercase; letter-spacing:1px; display:block; margin-top:8px
+body text: font-size:14px; color:#374151; margin:4px 0; line-height:1.6
 
 SECTION HEADERS:
-- Each section: margin-top:28px; margin-bottom:14px
-- Section title bar: background:#1a1a2e; color:#ffffff; padding:10px 16px; border-radius:8px; font-size:15px; font-weight:600; text-transform:uppercase; letter-spacing:1px
+font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:#6b7280; margin:24px 0 12px; padding-bottom:6px; border-bottom:2px solid #e5e7eb
 
-CARDS & ITEMS:
-- News item card: background:#f8f9fa; border-radius:8px; padding:14px 16px; margin:8px 0; border-left:4px solid #0d6efd
-- Important items: border-left-color:#dc3545
-- Brazil items: border-left-color:#009c3b
-- Source tag: display:inline-block; background:#e9ecef; color:#6c757d; font-size:11px; padding:2px 8px; border-radius:10px; margin-right:6px
-- Confidence badge: display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600
-  - High: background:#d1e7dd; color:#198754
-  - Med: background:#fff3cd; color:#856404
-  - Low: background:#f8d7da; color:#dc3545
-
-TABLES:
-- table: width:100%; border-collapse:collapse; font-size:14px; margin:12px 0
-- th: background:#1a1a2e; color:#ffffff; padding:10px 12px; text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:0.5px
-- td: padding:10px 12px; border-bottom:1px solid #e9ecef
-- Alternating rows: even rows background:#f8f9fa
-- Positive change: color:#198754; font-weight:600
-- Negative change: color:#dc3545; font-weight:600
-
-BULLETS:
-- ul: padding-left:0; list-style:none; margin:8px 0
-- li: padding:8px 0; border-bottom:1px solid #f0f0f0; font-size:14px; line-height:1.6
-- Use a colored bullet character prefix
-
-TL;DR SECTION:
-- Wrap in card: background:linear-gradient(135deg,#f0f4ff 0%,#e8f0fe 100%); border-radius:8px; padding:18px 20px; border-left:4px solid #0d6efd
-- Each bullet: margin:6px 0; font-size:14px
+OPPORTUNITY TABLE:
+table: width:100%; border-collapse:collapse; font-size:13px; margin:10px 0
+th: background:#111; color:#fff; padding:8px 12px; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; text-align:left
+td: padding:8px 12px; border-bottom:1px solid #e5e7eb
+buy signal text: color:#059669; font-weight:700
+sell/caro text:  color:#dc2626; font-weight:700
+neutral text:    color:#d97706; font-weight:600
 
 FOOTER:
-- background:#f8f9fa; padding:20px 28px; margin-top:28px; border-top:2px solid #e9ecef
-- font-size:12px; color:#6c757d; text-align:center
-- Include: "Generated by BRAIN | [timestamp] | Data may be delayed"
+background:#f9fafb; padding:16px 24px; font-size:11px; color:#9ca3af; text-align:center; margin-top:24px; border-top:1px solid #e5e7eb`;
 
-Keep total output under 2800 tokens. Prioritize density and scanability over completeness.`;
-
-function buildDailyBriefPrompt(packs, analysis, date, priceSnapshot = null) {
-  // Compact JSON (no pretty-print) — saves ~30% tokens on pack payloads
+function buildDailyBriefPrompt(packs, analysis, date, priceSnapshot = null, valuationCache = '') {
   const packText = (packs || []).map(p =>
     `## ${p.pack_type}\n${JSON.stringify(p.content)}`
   ).join('\n\n---\n\n');
@@ -98,23 +65,28 @@ function buildDailyBriefPrompt(packs, analysis, date, priceSnapshot = null) {
   const whyMoved = analysis?.why_moved_payload?.why_moved || [];
   const analysisText = whyMoved.length > 0
     ? `## WHY_MOVED_PAYLOAD\n${JSON.stringify(whyMoved)}`
-    : '## WHY_MOVED_PAYLOAD\nNo significant moves flagged today.';
+    : '## WHY_MOVED_PAYLOAD\nNo significant moves today.';
 
   const pricesText = formatSnapshotForPrompt(priceSnapshot);
 
+  const valuationSection = valuationCache
+    ? `## VALUATION_CACHE\n${valuationCache}`
+    : '## VALUATION_CACHE\nNo valuation data available yet.';
+
+  // packText (large) is cached; daily-changing data goes after the last --- boundary
   return `Generate BRAIN Daily Brief for ${date} (Asia/Shanghai timezone).
 
-${pricesText}
-
----
+## SOURCE PACKS
 
 ${packText}
 
 ---
 
+${pricesText}
+
 ${analysisText}
 
----
+${valuationSection}
 
 Portfolio: ${config.portfolio.tickers.join(', ')}
 

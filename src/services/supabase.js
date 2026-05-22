@@ -104,9 +104,25 @@ async function getPriceSnapshot(date) {
   };
 }
 
+async function savePrecoTeto(updatedDate, markdown, computed) {
+  const { error } = await supabase.from('preco_teto').upsert(
+    { id: 1, updated_date: updatedDate, markdown, computed, refreshed_at: new Date().toISOString() },
+    { onConflict: 'id' }
+  );
+  if (error) throw error;
+}
+
+async function getPrecoTeto() {
+  const { data, error } = await supabase
+    .from('preco_teto').select('updated_date,markdown,computed,refreshed_at').eq('id', 1).maybeSingle();
+  if (error) throw error;
+  return data || null;
+}
+
 module.exports = {
   insertPack, getPacksForDate, checkPackExists,
   logCost, getDailyCosts, getMonthlyCosts,
   saveDailyAnalysis, getDailyAnalysis,
   savePriceSnapshot, getPriceSnapshot,
+  savePrecoTeto, getPrecoTeto,
 };
