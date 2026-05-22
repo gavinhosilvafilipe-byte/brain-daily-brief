@@ -58,7 +58,7 @@ async function fetchCrypto(tickers) {
 }
 
 // ── Source 3: AwesomeAPI — USDBRL (free, no key) ────────────────────────
-async function fetchUSDRBL() {
+async function fetchUSDRBRL() {
   const resp = await axios.get('https://economia.awesomeapi.com.br/json/last/USD-BRL', { timeout: 10000 });
   const r = resp.data?.USDBRL;
   if (!r) return null;
@@ -71,7 +71,7 @@ async function fetchPrices(tickers = config.portfolio.tickers) {
   const [stocks, crypto, fx] = await Promise.allSettled([
     fetchB3(tickers),
     fetchCrypto(tickers),
-    tickers.includes('USDBRL') ? fetchUSDRBL() : Promise.resolve(null),
+    tickers.includes('USDBRL') ? fetchUSDRBRL() : Promise.resolve(null),
   ]);
   const map = {};
   if (stocks.status === 'fulfilled') Object.assign(map, stocks.value);

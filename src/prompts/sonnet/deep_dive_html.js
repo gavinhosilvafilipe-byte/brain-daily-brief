@@ -23,7 +23,7 @@ RULES:
 
 function buildDeepDivePrompt(ticker, reason, whatWeKnow, packs, portfolioContext) {
   const packsText = (packs || []).map(p =>
-    `## ${p.pack_type}\n${JSON.stringify(p.content, null, 2)}`
+    `## ${p.pack_type}\n${JSON.stringify(p.content)}`
   ).join('\n\n---\n\n');
   return `Generate deep-dive memo for: ${ticker}
 

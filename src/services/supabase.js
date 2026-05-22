@@ -119,10 +119,24 @@ async function getPrecoTeto() {
   return data || null;
 }
 
+async function getPortfolioPositions() {
+  const { data, error } = await supabase.from('portfolio_positions').select('*');
+  if (error) throw error;
+  return data || [];
+}
+
+async function savePortfolioPositions(rows) {
+  if (!rows?.length) return;
+  const { error } = await supabase
+    .from('portfolio_positions').upsert(rows, { onConflict: 'ticker' });
+  if (error) throw error;
+}
+
 module.exports = {
   insertPack, getPacksForDate, checkPackExists,
   logCost, getDailyCosts, getMonthlyCosts,
   saveDailyAnalysis, getDailyAnalysis,
   savePriceSnapshot, getPriceSnapshot,
   savePrecoTeto, getPrecoTeto,
+  getPortfolioPositions, savePortfolioPositions,
 };

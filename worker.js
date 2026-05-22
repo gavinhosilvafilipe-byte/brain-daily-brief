@@ -7,6 +7,15 @@ const PORT    = process.env.PORT || 3000;
 
 app.use(express.json());
 
+// ── Auth guard — all /run/* and legacy job endpoints ────────────────────
+app.use('/run', (req, res, next) => {
+  const secret = process.env.WORKER_SECRET;
+  if (secret && req.headers['x-api-key'] !== secret) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  next();
+});
+
 // ── Health ─────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
 
@@ -20,6 +29,8 @@ const JOB_MAP = {
   distill:   './src/jobs/distill_weekly',
   poll:      './src/jobs/poll_approvals',
   deepdive:  './src/jobs/deepdive',
+  valuation: './src/jobs/valuation',
+  triage:    './src/jobs/triage',
 };
 
 app.post('/run/:job', async (req, res) => {
@@ -83,8 +94,11 @@ cron.schedule('*/20 22,23,0,1 * * *', () => runJob('poll_approvals', './src/jobs
 // Sunday 20:00 UTC = Mon 04:00 SGT — weekly distillation to Obsidian
 cron.schedule('0 20 * * 0',  () => runJob('distill_weekly','./src/jobs/distill_weekly'));
 
+// Friday 21:00 UTC = Saturday 05:00 CST — weekly portfolio valuation → Obsidian
+cron.schedule('0 21 * * 5',  () => runJob('valuation',     './src/jobs/valuation'));
+
 // ── Start ────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`[worker] listening on :${PORT}`);
-  console.log('[worker] cron active (UTC): ingest=21:30 prices=22:00 analyze=22:10 brief=22:30 budget=22:50 poll=*/20 distill=Sun20:00');
+  console.log('[worker] cron active (UTC): ingest=21:30 prices=22:00 analyze=22:10 brief=22:30 budget=22:50 poll=*/20 distill=Sun20:00 valuation=Fri21:00');
 });

@@ -1,6 +1,6 @@
 'use strict';
 require('dotenv').config({ override: true });
-const { callHaiku }          = require('../services/anthropic');
+const { callHaiku, parseJsonLoose } = require('../services/anthropic');
 const { insertPack, checkPackExists } = require('../services/supabase');
 const { fetchMarketNews }    = require('../services/newsapi');
 const { getRecentVideos }    = require('../services/youtube');
@@ -16,8 +16,7 @@ async function generatePack(packType, userMessage, systemPrompt, cacheKey) {
   console.log(`[ingest] generating ${packType}...`);
   const result = await callHaiku([{ role: 'user', content: userMessage }], systemPrompt, 'ingest');
   let parsed;
-  try   { parsed = JSON.parse(result.content); }
-  catch { parsed = { pack_type: packType, raw: result.content, parse_error: true }; }
+  parsed = parseJsonLoose(result.content) ?? { pack_type: packType, raw: result.content, parse_error: true };
   await insertPack(packType, parsed, cacheKey);
   console.log(`[ingest] ${packType} done. Cost: $${result.costUsd.toFixed(6)}`);
   return parsed;

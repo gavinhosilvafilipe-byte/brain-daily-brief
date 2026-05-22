@@ -7,21 +7,23 @@ Produce ONE complete HTML email. NO markdown, NO code fences. Start with <!DOCTY
 
 RULES:
 1. HTML only, inline styles, Gmail-compatible (no <style> block, no CSS classes).
-2. Tone: direct, witty, dense. No generic filler. Every sentence earns its place.
+2. Tone: direct, witty, dense — buy-side analyst, not a blog. No generic filler. Every sentence earns its place.
 3. Tag claims: FACT / INTERPRETATION / HYPOTHESIS.
-4. Total HTML under 2800 tokens. Dense > verbose.
-5. Use pack data only — never hallucinate facts.
+4. Target 5000-6500 tokens. Be thorough and in-depth — this is a serious research brief, not a teaser. Depth > brevity, but never pad with filler.
+5. Use pack + portfolio + valuation data only — never hallucinate facts or numbers.
 6. Deduplicate: merge repeated stories into one card.
+7. WHY MOVED must explain the TRANSMISSION MECHANISM (macro/policy → sector → specific ticker), not restate the headline. Connect causes to the user's actual holdings.
 
 LAYOUT — EXACT ORDER:
 1. HEADER BANNER — dark gradient, "BRAIN" title, date, coverage note
 2. ⚡ MARKET FLASH — one row of chips: each ticker as green/red/neutral pill
-3. 📋 TOP STORIES — 4-6 story cards. Each card: Headline • WHAT • WHY IT MATTERS • NEXT
-4. 🇧🇷 BRASIL UPDATE — 2-4 compact bullets (rates/FX/B3/politics)
-5. 💰 OPORTUNIDADES — only if valuation data provided. Table: Ticker|Preço|Teto|Desconto|Sinal. Only show tickers with discount > 0%.
-6. 🔍 WHY THINGS MOVED — only if why_moved data. 1-2 lines per ticker.
-7. 📅 UPCOMING CATALYSTS — 3-5 items max
-8. FOOTER — timestamp, "Research only, not investment advice."
+3. 💼 PORTFOLIO MOVES — only if portfolio data provided. Lead line: total invested vs market value + day P&L direction. Table of the day's notable holdings (PORTFOLIO_POSITIONS): Ticker | Δ Dia | Valor | P&L c/div | Sinal (preço-teto 🟢/🟡/🔴). Show the 6-10 biggest movers / largest positions, then 2-3 sentences interpreting what moved the book today and which holdings warrant attention.
+4. 📋 TOP STORIES — 6-9 story cards. Each card: Headline • WHAT • WHY IT MATTERS • NEXT. Prioritise stories touching the user's holdings/sectors.
+5. 🇧🇷 BRASIL UPDATE — 3-5 compact bullets (Selic/IPCA/câmbio/B3/política) with the number and the read.
+6. 💰 OPORTUNIDADES — only if valuation data provided. Table: Ticker|Preço|Teto|Desconto|Sinal. Only show tickers with discount > 0%.
+7. 🔍 WHY THINGS MOVED — only if why_moved data. 2-4 lines per ticker: state the driver, the transmission mechanism, and the read on the position. Be specific, cite the FACT.
+8. 📅 UPCOMING CATALYSTS — 4-6 items max, each with date/window and why it matters to the book.
+9. FOOTER — timestamp, "Research only, not investment advice."
 
 DESIGN SYSTEM (INLINE STYLES — Gmail):
 body: background:#f5f5f5; font-family:'Helvetica Neue',Arial,sans-serif; margin:0; padding:20px 0
@@ -39,9 +41,9 @@ neutral:  background:#f3f4f6; color:#374151; (same)
 STORY CARDS:
 card: background:#f9fafb; border-radius:10px; padding:16px 18px; margin:10px 0; border-left:4px solid #3b82f6
 brasil card: border-left-color:#009c3b
-headline: font-size:16px; font-weight:700; color:#111; margin:0 0 10px
-label (WHAT/WHY IT MATTERS/NEXT): font-size:10px; font-weight:800; color:#6b7280; text-transform:uppercase; letter-spacing:1px; display:block; margin-top:8px
-body text: font-size:14px; color:#374151; margin:4px 0; line-height:1.6
+headline: font-size:18px; font-weight:700; color:#111; margin:0 0 10px
+label (WHAT/WHY IT MATTERS/NEXT): font-size:11px; font-weight:800; color:#6b7280; text-transform:uppercase; letter-spacing:1px; display:block; margin-top:8px
+body text: font-size:16px; color:#374151; margin:4px 0; line-height:1.65
 
 SECTION HEADERS:
 font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:#6b7280; margin:24px 0 12px; padding-bottom:6px; border-bottom:2px solid #e5e7eb
@@ -57,7 +59,22 @@ neutral text:    color:#d97706; font-weight:600
 FOOTER:
 background:#f9fafb; padding:16px 24px; font-size:11px; color:#9ca3af; text-align:center; margin-top:24px; border-top:1px solid #e5e7eb`;
 
-function buildDailyBriefPrompt(packs, analysis, date, priceSnapshot = null, valuationCache = '') {
+function formatPositionsForPrompt(positions) {
+  if (!positions?.length) return '## PORTFOLIO_POSITIONS\nNo portfolio data available.';
+  const totInv = positions.reduce((a, p) => a + (Number(p.current_value_brl) || 0), 0);
+  const totMkt = positions.reduce((a, p) => a + (Number(p.market_value_brl) || 0), 0);
+  const rows = positions
+    .filter(p => p.market_value_brl != null)
+    .sort((a, b) => Math.abs(b.day_change_pct || 0) - Math.abs(a.day_change_pct || 0) || (b.market_value_brl - a.market_value_brl))
+    .map(p => ({
+      ticker: p.ticker, class: p.asset_class, day_pct: p.day_change_pct,
+      market_value_brl: p.market_value_brl, pnl_com_div: p.rendimento_com_prov,
+      ret_com_div_pct: p.rentab_com_prov, teto: p.teto_status, teto_price: p.teto_price,
+    }));
+  return `## PORTFOLIO_POSITIONS (invested R$${Math.round(totInv).toLocaleString('pt-BR')} | market R$${Math.round(totMkt).toLocaleString('pt-BR')})\n${JSON.stringify(rows)}`;
+}
+
+function buildDailyBriefPrompt(packs, analysis, date, priceSnapshot = null, valuationCache = '', positions = []) {
   const packText = (packs || []).map(p =>
     `## ${p.pack_type}\n${JSON.stringify(p.content)}`
   ).join('\n\n---\n\n');
@@ -67,7 +84,8 @@ function buildDailyBriefPrompt(packs, analysis, date, priceSnapshot = null, valu
     ? `## WHY_MOVED_PAYLOAD\n${JSON.stringify(whyMoved)}`
     : '## WHY_MOVED_PAYLOAD\nNo significant moves today.';
 
-  const pricesText = formatSnapshotForPrompt(priceSnapshot);
+  const pricesText     = formatSnapshotForPrompt(priceSnapshot);
+  const positionsText  = formatPositionsForPrompt(positions);
 
   const valuationSection = valuationCache
     ? `## VALUATION_CACHE\n${valuationCache}`
@@ -84,11 +102,13 @@ ${packText}
 
 ${pricesText}
 
+${positionsText}
+
 ${analysisText}
 
 ${valuationSection}
 
-Portfolio: ${config.portfolio.tickers.join(', ')}
+Portfolio tickers: ${config.portfolio.tickers.join(', ')}
 
 Generate the complete HTML email now. Follow the design system exactly. Output HTML only, start with <!DOCTYPE html>.`;
 }

@@ -11,9 +11,13 @@
     "deepdive": "node src/jobs/deepdive.js",
     "distill": "node src/jobs/distill_weekly.js",
     "poll": "node src/jobs/poll_approvals.js",
+    "triage": "node src/jobs/triage.js",
     "budget": "node src/jobs/budget_rollup.js",
     "gmail-setup": "node scripts/gmail-oauth-setup.js",
-    "prices": "node src/jobs/fetch_prices.js"
+    "prices": "node src/jobs/fetch_prices.js",
+    "valuation": "node src/jobs/valuation.js",
+    "portfolio-sync": "node src/jobs/portfolio_sync.js",
+    "news-prune": "node -e \"require('./src/services/stock_news').pruneAll(require('./src/config').portfolio.tickers)\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.55.0",

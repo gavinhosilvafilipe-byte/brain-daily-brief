@@ -1,0 +1,36 @@
+{
+  "generatedAt": "2026-05-20T14:07:42.098Z",
+  "total": 9,
+  "counts": {
+    "HKUST": 1,
+    "FINANCE": 0,
+    "ACTION": 0,
+    "PERSONAL": 0,
+    "RECEIPT": 0,
+    "NEWSLETTER": 8,
+    "OTHER": 0
+  },
+  "important": [
+    {
+      "from": "HKUST UG Admissions",
+      "subject": "(Reminder) [HKUST] Join Us for Campus Tour for Offer Recipients! (June 3)",
+      "summary": "HKUST Campus Tour for Offer Recipients on June 3",
+      "category": "HKUST"
+    }
+  ],
+  "actions": [
+    {
+      "subject": "(Reminder) [HKUST] Join Us for Campus Tour for Offer Recipients! (June 3)",
+      "summary": "HKUST Campus Tour for Offer Recipients on June 3"
+    }
+  ],
+  "events": [
+    {
+      "title": "HKUST Campus Tour for Offer Recipients",
+      "date": "2026-06-03",
+      "time": "",
+      "note": "Reminder email for offer recipients",
+      "source": "(Reminder) [HKUST] Join Us for Campus Tour for Offer Recipients! (June 3)"
+    }
+  ]
+}

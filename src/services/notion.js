@@ -5,17 +5,6 @@ const config = require('../config');
 const notion = new Client({ auth: config.notion.token });
 const DBS = config.notion.dbs;
 
-async function getSettings() {
-  const resp = await notion.databases.query({ database_id: DBS.settings });
-  const settings = {};
-  for (const page of resp.results) {
-    const name  = page.properties['Setting Name']?.title?.[0]?.plain_text;
-    const value = page.properties['Value']?.rich_text?.[0]?.plain_text;
-    if (name) settings[name] = value;
-  }
-  return settings;
-}
-
 async function addDeepDiveCandidate({ ticker, reason, whatWeKnow, whatWeNeed, confidence }) {
   const now     = new Date();
   const expires = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
@@ -249,4 +238,39 @@ async function logTriage(items) {
   return n;
 }
 
-module.exports = { getSettings, addDeepDiveCandidate, getApprovedDeepDives, updateDeepDiveStatus, logOutput, logBudget, logTriage };
+// ── Portfolio positions → Notion DB (upsert by Ticker) ───────────────────
+// Maps canonical holdings to the existing "📊 Filipe Portfolio Positions" schema.
+// Return % props are Notion `percent` type → store as fraction (-10.62% → -0.1062).
+async function syncPortfolio(rows) {
+  if (!DBS.portfolio) { console.warn('[notion] NOTION_PORTFOLIO_DB_ID unset — skipping portfolio sync'); return 0; }
+  const pct = v => (v == null ? null : v / 100);
+  let n = 0;
+  for (const r of rows) {
+    const props = {
+      'Ticker':          { title:  [{ text: { content: r.ticker } }] },
+      'Category':        { select: { name: r.category } },
+      'Qty':             { number: r.quantity ?? null },
+      'Invested BRL':    { number: r.invested_brl ?? null },
+      'Avg Price':       { number: r.avg_price ?? null },
+      'Avg Price w/ Div':{ number: r.avg_price_with_div ?? null },
+      'P&L ex Div':      { number: r.pnl_ex ?? null },
+      'P&L inc Div':     { number: r.pnl_inc ?? null },
+      'Return ex Div %': { number: pct(r.ret_ex) },
+      'Return inc Div %':{ number: pct(r.ret_inc) },
+    };
+    try {
+      const found = await notion.databases.query({
+        database_id: DBS.portfolio,
+        filter: { property: 'Ticker', title: { equals: r.ticker } },
+        page_size: 1,
+      });
+      if (found.results.length) await notion.pages.update({ page_id: found.results[0].id, properties: props });
+      else await notion.pages.create({ parent: { database_id: DBS.portfolio }, properties: props });
+      n++;
+    } catch (e) { console.error(`[notion] portfolio sync fail ${r.ticker}: ${e.message}`); }
+  }
+  console.log(`[notion] synced ${n}/${rows.length} portfolio positions`);
+  return n;
+}
+
+module.exports = { addDeepDiveCandidate, getApprovedDeepDives, updateDeepDiveStatus, logOutput, logBudget, logTriage, syncPortfolio };

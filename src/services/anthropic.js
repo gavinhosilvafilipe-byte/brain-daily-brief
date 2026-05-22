@@ -76,4 +76,15 @@ const callHaiku  = (m, s, j, opts) => callModel('claude-haiku-4-5-20251001', m, 
 const callSonnet = (m, s, j, opts) => callModel('claude-sonnet-4-6',         m, s, j, opts);
 const callOpus   = (m, s, j, opts) => callModel('claude-opus-4-7',           m, s, j, opts);
 
-module.exports = { callModel, callHaiku, callSonnet, callOpus };
+// Robust JSON extraction — models often wrap JSON in ```json fences or add prose.
+// Returns parsed object, or null if no valid JSON found.
+function parseJsonLoose(text) {
+  if (text == null) return null;
+  let t = String(text).trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  try { return JSON.parse(t); } catch {}
+  const s = t.indexOf('{'), e = t.lastIndexOf('}');
+  if (s >= 0 && e > s) { try { return JSON.parse(t.slice(s, e + 1)); } catch {} }
+  return null;
+}
+
+module.exports = { callModel, callHaiku, callSonnet, callOpus, parseJsonLoose };

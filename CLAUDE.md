@@ -27,6 +27,7 @@ Never ask which script to run. Infer from context.
 | "deep dive on X" / "research X in depth" | `npm run deepdive` | src/jobs/deepdive.js — uses Sonnet |
 | "weekly" / "distill" / "summarize week" | `npm run distill` | src/jobs/distill_weekly.js |
 | "check approvals" / "any topics approved?" / "poll" | `npm run poll` | src/jobs/poll_approvals.js |
+| "triage email" / "check inbox" / "what did I miss" | `npm run triage` | src/jobs/triage.js — reads unread, labels, logs |
 | "budget" / "how much spent" / "cost" | `npm run budget` | src/jobs/budget_rollup.js |
 | "start server" / "run worker" | `npm run start` | worker.js (Express) |
 | Full pipeline (manual test run) | `npm run ingest && npm run analyze && npm run brief` | ⚠️ sends email |
@@ -45,6 +46,17 @@ src/jobs/
   distill_weekly.js   ← weekly pack synthesis
   poll_approvals.js   ← poll Notion Deep Dive Queue for approved items
   budget_rollup.js    ← cost_log → Notion Budget Dashboard
+  triage.js           ← read unread Gmail → Haiku categorize → label + Obsidian daily note + Notion 📥 Inbox Triage + Mac push + STATE/missed.json
+
+src/services/
+  gmail_read.js       ← googleapis Gmail read + label (full mail.google.com scope)
+src/hooks/
+  session_digest.js   ← SessionStart hook: prints STATE/missed.json digest into every new Claude chat
+scripts/
+  run-triage.sh       ← launchd wrapper for triage (3x daily)
+STATE/
+  missed.json/.md     ← latest inbox digest (read by SessionStart hook)
+  triaged_ids.json    ← processed message IDs (dedup, last 2000)
 
 scripts/
   gmail-oauth-setup.js  ← one-time OAuth
@@ -63,6 +75,7 @@ supabase/migrations/  ← DB schema (run once in Supabase SQL editor)
 | Daily pipeline | `30 23 * * *` | 07:30 | `.github/workflows/` |
 | Weekly distill | `0 10 * * 0` | 18:00 Sun | `.github/workflows/` |
 | Poll approvals | `*/15 * * * *` | Every 15 min | `.github/workflows/` |
+| Inbox triage | 08:00 · 13:00 · 20:00 local | Asia/Shanghai | `~/Library/LaunchAgents/com.filipe.brain-triage.plist` (launchd, local Mac) |
 
 To test without waiting for cron: `npm run <script>` directly.
 

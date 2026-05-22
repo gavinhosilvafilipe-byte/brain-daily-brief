@@ -4,10 +4,15 @@ const config = require('../config');
 
 const TOPICS = [
   'US stock market Fed interest rates',
-  'Brazil Ibovespa SELIC inflation',
-  'Bitcoin crypto markets',
-  'oil gold commodities',
+  'Brazil Ibovespa SELIC inflation Copom',
+  'Bitcoin Ethereum crypto markets',
+  'oil gold iron ore commodities',
   'China trade geopolitics',
+  'Brazil banks Banco do Brasil Itau Bradesco earnings',
+  'Brazil utilities electricity sanitation Cemig Taesa',
+  'Vale mining iron ore Brazil exports',
+  'Brazil real estate FII fundos imobiliarios interest rates',
+  'Brazil fiscal Tesouro NTN-B real yield',
 ];
 
 async function searchNewsOrg(query, pageSize = 20) {
@@ -35,7 +40,7 @@ async function fetchMarketNews(topics = TOPICS) {
   const results = [];
   for (const topic of topics) {
     try {
-      const articles = await searchNewsOrg(topic, 10);
+      const articles = await searchNewsOrg(topic, 14);
       results.push(...articles);
     } catch (e) {
       console.error(`[newsapi] newsapi.org failed for "${topic}":`, e.message);

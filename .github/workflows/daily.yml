@@ -19,6 +19,7 @@ jobs:
       NOTION_QUEUE_DB_ID:    ${{ secrets.NOTION_QUEUE_DB_ID }}
       NOTION_OUTPUTS_DB_ID:  ${{ secrets.NOTION_OUTPUTS_DB_ID }}
       NOTION_BUDGET_DB_ID:   ${{ secrets.NOTION_BUDGET_DB_ID }}
+      NOTION_PORTFOLIO_DB_ID: ${{ secrets.NOTION_PORTFOLIO_DB_ID }}
       NEWSAPI_ORG_KEY:       ${{ secrets.NEWSAPI_ORG_KEY }}
       NEWSDATA_IO_KEY:       ${{ secrets.NEWSDATA_IO_KEY }}
       YOUTUBE_API_KEY:       ${{ secrets.YOUTUBE_API_KEY }}
@@ -52,6 +53,9 @@ jobs:
 
       - name: Run Analyze
         run: npm run analyze
+
+      - name: Run Portfolio Sync
+        run: npm run portfolio-sync
 
       - name: Run Brief
         run: npm run brief

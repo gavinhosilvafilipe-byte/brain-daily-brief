@@ -1,7 +1,7 @@
 'use strict';
 require('dotenv').config({ override: true });
 const { callSonnet }       = require('../services/anthropic');
-const { getPacksForDate, getDailyAnalysis, getPriceSnapshot, getPrecoTeto } = require('../services/supabase');
+const { getPacksForDate, getDailyAnalysis, getPriceSnapshot, getPrecoTeto, getPortfolioPositions } = require('../services/supabase');
 const { logOutput }        = require('../services/notion');
 const { sendBrief }        = require('../services/gmail');
 const { DAILY_BRIEF_HTML_SYSTEM, buildDailyBriefPrompt } = require('../prompts/sonnet/daily_brief_html');
@@ -12,10 +12,11 @@ async function run() {
   console.log('[brief] start', new Date().toISOString());
   const today = new Date().toISOString().split('T')[0];
 
-  const [packs, analysis, priceSnapshot] = await Promise.all([
+  const [packs, analysis, priceSnapshot, positions] = await Promise.all([
     getPacksForDate(new Date()),
     getDailyAnalysis(today),
     getPriceSnapshot(today).catch(() => null),
+    getPortfolioPositions().catch(() => []),
   ]);
 
   const legacyVal = readNote('STOCK/valuations/_summary.md') || '';
@@ -30,12 +31,12 @@ async function run() {
   })();
   const valuationCache = [tetoSlice && `# PREÇO TETO (composite ceilings)\n${tetoSlice}`, legacyVal]
     .filter(Boolean).join('\n\n');
-  const prompt = buildDailyBriefPrompt(packs, analysis, today, priceSnapshot, valuationCache);
-  // cacheContent=true: packs cached at '---' boundary; maxTokens=3000 caps HTML output
+  const prompt = buildDailyBriefPrompt(packs, analysis, today, priceSnapshot, valuationCache, positions);
+  // cacheContent=true: packs cached at '---' boundary; maxTokens caps HTML output (raised for in-depth brief + portfolio section)
   const result = await callSonnet(
     [{ role: 'user', content: prompt }],
     DAILY_BRIEF_HTML_SYSTEM, 'brief',
-    { cacheContent: true, maxTokens: 3000 }
+    { cacheContent: true, maxTokens: 8000 }
   );
   const html   = result.content;
 
