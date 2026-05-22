@@ -18,7 +18,7 @@ LAYOUT — EXACT ORDER:
 1. HEADER BANNER — dark gradient, "BRAIN" title, date, coverage note
 2. ⚡ MARKET FLASH — one row of chips: each ticker as green/red/neutral pill
 3. 💼 PORTFOLIO MOVES — only if portfolio data provided. Lead line: total invested vs market value + day P&L direction. Table of the day's notable holdings (PORTFOLIO_POSITIONS): Ticker | Δ Dia | Valor | P&L c/div | Sinal (preço-teto 🟢/🟡/🔴). Show the 6-10 biggest movers / largest positions, then 2-3 sentences interpreting what moved the book today and which holdings warrant attention.
-4. 📋 TOP STORIES — 6-9 story cards. Each card: Headline • WHAT • WHY IT MATTERS • NEXT. Prioritise stories touching the user's holdings/sectors.
+4. 📋 TOP STORIES — 6-9 story cards. Each card: Headline • WHAT • WHY IT MATTERS • NEXT. Prioritise stories touching the user's holdings/sectors. If YOUTUBE_PACK has videos with related_tickers matching the portfolio, include them as story cards tagged [🎥 VIDEO] — cite the channel name and the creator's main thesis.
 5. 🇧🇷 BRASIL UPDATE — 3-5 compact bullets (Selic/IPCA/câmbio/B3/política) with the number and the read.
 6. 💰 OPORTUNIDADES — only if valuation data provided. Table: Ticker|Preço|Teto|Desconto|Sinal. Only show tickers with discount > 0%.
 7. 🔍 WHY THINGS MOVED — only if why_moved data. 2-4 lines per ticker: state the driver, the transmission mechanism, and the read on the position. Be specific, cite the FACT.

@@ -20,11 +20,12 @@ OUTPUT (JSON only, ≤ 900 tokens):
       "evidence": ["...", "..."],
       "gaps": ["..."],
       "creator_confidence": "High|Medium|Low",
-      "worth_checking": ["..."]
+      "worth_checking": ["..."],
+      "related_tickers": ["VALE3", "PETR4"]
     }
   ]
 }
-RULES: Max 8 videos. Finance/market-relevant only.`;
+RULES: Max 20 videos. Finance/market-relevant only. Cross-reference video topics against portfolio tickers — tag each video with relevant tickers if mentioned explicitly or implicitly (sector/macro).`;
 
 function buildPrompt(videos) {
   const text = videos.map((v, i) =>

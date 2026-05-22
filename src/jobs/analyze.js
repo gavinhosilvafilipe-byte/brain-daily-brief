@@ -11,9 +11,9 @@ const SYSTEM = `You analyze news packs and portfolio holdings to find "why thing
 INPUT: News packs (JSON) + portfolio tickers + move threshold: ${config.portfolio.bigMoveThreshold}%
 If EXISTING STOCK MEMORY is provided, use it to deepen the WHY explanation — connect today's move to the historical catalyst (e.g. "VALE3 +5% today is continuation of the Carajás expansion announced 2026-04-10: steel demand thesis playing out ahead of 2028 ramp"). Always state the transmission mechanism. Never just say "same driver as yesterday" — explain WHY that driver is still moving the price.
 TASK:
-1. For each portfolio ticker, score news impact 1-10
-2. Identify top 5 "why moved" drivers with confidence (Low/Med/High)
-3. Flag tickers for deep dive if: news_impact_score > 6 OR story mentions ticker directly
+1. For each portfolio ticker, score news impact 1-10. Include YOUTUBE_PACK signals — if a credible creator explicitly covers a ticker or its sector, boost the score and note the creator's thesis in the driver.
+2. Identify top 5 "why moved" drivers with confidence (Low/Med/High). If a YouTube video directly addresses a holding's catalyst or macro driver, cite it as supporting evidence.
+3. Flag tickers for deep dive if: news_impact_score > 6 OR story mentions ticker directly OR a YouTube creator flags a structural thesis change.
 4. For any news with multi-month or multi-year price relevance (new project, acquisition, regulatory shift, long-horizon catalyst), extract a memory snippet to save — be selective, 1-3 snippets max per day
 OUTPUT JSON (only):
 {

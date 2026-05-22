@@ -7,7 +7,7 @@ const youtube = google.youtube({ version: 'v3', auth: config.youtube.apiKey });
 async function getRecentVideos(channelIds = [], lookbackHours = 48) {
   const publishedAfter = new Date(Date.now() - lookbackHours * 60 * 60 * 1000).toISOString();
   const videos = [];
-  for (const channelId of (channelIds || []).slice(0, 5)) {
+  for (const channelId of (channelIds || [])) {
     try {
       const resp = await youtube.search.list({
         part: 'snippet', channelId, type: 'video',
@@ -27,7 +27,7 @@ async function getRecentVideos(channelIds = [], lookbackHours = 48) {
       console.error(`[youtube] channel ${channelId} failed:`, e.message);
     }
   }
-  return videos.slice(0, 8);
+  return videos.slice(0, 20);
 }
 
 module.exports = { getRecentVideos };
