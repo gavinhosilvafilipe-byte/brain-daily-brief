@@ -7,7 +7,7 @@ TASK:
 2. List evidence bullets from title/description
 3. Assign creator confidence (High/Medium/Low based on channel type)
 4. Note gaps (what's not covered)
-OUTPUT (JSON only, ≤ 900 tokens):
+OUTPUT (JSON only, ≤ 2000 tokens):
 {
   "pack_type": "YOUTUBE_PACK",
   "created_at": "ISO 8601",

@@ -14,7 +14,7 @@ async function generatePack(packType, userMessage, systemPrompt, cacheKey) {
   const exists = await checkPackExists(cacheKey);
   if (exists) { console.log(`[ingest] ${packType}: cache hit`); return null; }
   console.log(`[ingest] generating ${packType}...`);
-  const result = await callHaiku([{ role: 'user', content: userMessage }], systemPrompt, 'ingest');
+  const result = await callHaiku([{ role: 'user', content: userMessage }], systemPrompt, 'ingest', { maxTokens: 8192 });
   let parsed;
   parsed = parseJsonLoose(result.content) ?? { pack_type: packType, raw: result.content, parse_error: true };
   await insertPack(packType, parsed, cacheKey);

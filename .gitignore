@@ -4,3 +4,18 @@ node_modules/
 dist/
 .DS_Store
 *.html.bak
+
+# Ruflo runtime
+.claude-flow/data/
+.claude-flow/logs/
+.claude-flow/sessions/
+ruvector.db
+CLAUDE.md.bak
+
+# Ruflo generated boilerplate (keep .mcp.json and .claude-flow/config.yaml)
+.claude/agents/
+.claude/commands/
+.claude/helpers/
+.claude/skills/
+.claude/statusline.mjs
+.claude/statusline.sh
