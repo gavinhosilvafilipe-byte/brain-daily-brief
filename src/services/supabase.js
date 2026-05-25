@@ -132,11 +132,25 @@ async function savePortfolioPositions(rows) {
   if (error) throw error;
 }
 
+// Remove positions whose ticker is not in keepTickers (reconcile to authoritative source).
+async function deletePositionsNotIn(keepTickers) {
+  if (!keepTickers?.length) return 0;
+  const { data, error } = await supabase
+    .from('portfolio_positions').select('ticker');
+  if (error) throw error;
+  const keep  = new Set(keepTickers);
+  const stale = (data || []).map(r => r.ticker).filter(t => !keep.has(t));
+  if (!stale.length) return 0;
+  const { error: delErr } = await supabase.from('portfolio_positions').delete().in('ticker', stale);
+  if (delErr) throw delErr;
+  return stale.length;
+}
+
 module.exports = {
   insertPack, getPacksForDate, checkPackExists,
   logCost, getDailyCosts, getMonthlyCosts,
   saveDailyAnalysis, getDailyAnalysis,
   savePriceSnapshot, getPriceSnapshot,
   savePrecoTeto, getPrecoTeto,
-  getPortfolioPositions, savePortfolioPositions,
+  getPortfolioPositions, savePortfolioPositions, deletePositionsNotIn,
 };

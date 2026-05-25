@@ -29,6 +29,9 @@ jobs:
       FIRECRAWL_API_KEY:     ${{ secrets.FIRECRAWL_API_KEY }}
       PORTFOLIO_TICKERS:     ${{ secrets.PORTFOLIO_TICKERS }}
       BIG_MOVE_THRESHOLD:    '3.0'
+      EXCLUDE_ASSET_CLASSES: 'CRYPTO'
+      INVESTIDOR10_WALLET_ID:   ${{ secrets.INVESTIDOR10_WALLET_ID }}
+      INVESTIDOR10_WALLET_HASH: ${{ secrets.INVESTIDOR10_WALLET_HASH }}
       GMAIL_CLIENT_ID:       ${{ secrets.GMAIL_CLIENT_ID }}
       GMAIL_CLIENT_SECRET:   ${{ secrets.GMAIL_CLIENT_SECRET }}
       GMAIL_REFRESH_TOKEN:   ${{ secrets.GMAIL_REFRESH_TOKEN }}
@@ -55,8 +58,8 @@ jobs:
       - name: Run Analyze
         run: npm run analyze
 
-      - name: Run Portfolio Sync
-        run: npm run portfolio-sync
+      - name: Run Wallet Sync (investidor10 mirror)
+        run: npm run wallet-sync
 
       - name: Run Brief
         run: npm run brief

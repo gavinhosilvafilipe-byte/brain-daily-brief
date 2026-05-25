@@ -17,6 +17,7 @@
     "prices": "node src/jobs/fetch_prices.js",
     "valuation": "node src/jobs/valuation.js",
     "portfolio-sync": "node src/jobs/portfolio_sync.js",
+    "wallet-sync": "node src/jobs/wallet_sync.js",
     "news-prune": "node -e \"require('./src/services/stock_news').pruneAll(require('./src/config').portfolio.tickers)\""
   },
   "dependencies": {

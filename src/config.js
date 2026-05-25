@@ -38,6 +38,10 @@ module.exports = {
   firecrawl: {
     apiKey: process.env.FIRECRAWL_API_KEY,
   },
+  investidor10: {
+    walletId:   process.env.INVESTIDOR10_WALLET_ID   || '',
+    walletHash: process.env.INVESTIDOR10_WALLET_HASH || '',
+  },
   portfolio: {
     tickers: (process.env.PORTFOLIO_TICKERS || 'BBAS3,VALE3,PETR4,USDBRL').split(',').map(s => s.trim()).filter(Boolean),
     fiiTickers: (process.env.FII_TICKERS || '').split(',').filter(Boolean),
