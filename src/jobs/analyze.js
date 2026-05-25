@@ -69,7 +69,7 @@ async function run() {
 
   const result = await callHaiku(
     [{ role: 'user', content: `${pricesText}\n\n${portfolioText}\n\n${packsText}${memoryText}` }],
-    SYSTEM, 'analyze'
+    SYSTEM, 'analyze', { maxTokens: 8192 }
   );
 
   const parsed = parseJsonLoose(result.content) ?? { date: today, why_moved: [], parse_error: true, raw: result.content };

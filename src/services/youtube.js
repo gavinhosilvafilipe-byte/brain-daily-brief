@@ -1,33 +1,39 @@
 'use strict';
-const { google } = require('googleapis');
-const config = require('../config');
-
-const youtube = google.youtube({ version: 'v3', auth: config.youtube.apiKey });
+const Parser = require('rss-parser');
+const parser = new Parser({ timeout: 10000 });
 
 async function getRecentVideos(channelIds = [], lookbackHours = 48) {
-  const publishedAfter = new Date(Date.now() - lookbackHours * 60 * 60 * 1000).toISOString();
+  const cutoff = Date.now() - lookbackHours * 60 * 60 * 1000;
   const videos = [];
-  for (const channelId of (channelIds || [])) {
-    try {
-      const resp = await youtube.search.list({
-        part: 'snippet', channelId, type: 'video',
-        order: 'date', publishedAfter, maxResults: 6,
-      });
-      for (const item of (resp.data.items || [])) {
-        videos.push({
-          videoId:     item.id.videoId,
-          title:       item.snippet.title,
-          channel:     item.snippet.channelTitle,
-          publishedAt: item.snippet.publishedAt,
-          link:        `https://www.youtube.com/watch?v=${item.id.videoId}`,
-          description: item.snippet.description,
-        });
+
+  await Promise.allSettled(
+    (channelIds || []).map(async (channelId) => {
+      try {
+        const feed = await parser.parseURL(
+          `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`
+        );
+        for (const item of (feed.items || [])) {
+          const pub = new Date(item.pubDate || item.isoDate).getTime();
+          if (pub >= cutoff) {
+            videos.push({
+              videoId:     item.id?.split(':').pop() ?? '',
+              title:       item.title,
+              channel:     feed.title,
+              publishedAt: item.pubDate || item.isoDate,
+              link:        item.link,
+              description: item.contentSnippet || item.content || '',
+            });
+          }
+        }
+      } catch (e) {
+        console.error(`[youtube] channel ${channelId} failed:`, e.message);
       }
-    } catch (e) {
-      console.error(`[youtube] channel ${channelId} failed:`, e.message);
-    }
-  }
-  return videos.slice(0, 20);
+    })
+  );
+
+  return videos
+    .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
+    .slice(0, 20);
 }
 
 module.exports = { getRecentVideos };
