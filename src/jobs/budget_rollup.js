@@ -13,26 +13,29 @@ async function run() {
     getMonthlyCosts(yearMonth),
   ]);
 
-  const agg = { haiku: { calls: 0, cost: 0 }, sonnet: { calls: 0, cost: 0 }, deepDives: 0 };
+  const agg = { haiku: { calls: 0, cost: 0 }, sonnet: { calls: 0, cost: 0 }, opus: { calls: 0, cost: 0 }, deepDives: 0 };
   for (const row of daily) {
-    if (row.model.includes('haiku')) { agg.haiku.calls++; agg.haiku.cost += row.cost_usd; }
-    else                             { agg.sonnet.calls++; agg.sonnet.cost += row.cost_usd; }
+    if      (row.model.includes('haiku')) { agg.haiku.calls++;  agg.haiku.cost  += row.cost_usd; }
+    else if (row.model.includes('opus'))  { agg.opus.calls++;   agg.opus.cost   += row.cost_usd; }
+    else                                  { agg.sonnet.calls++; agg.sonnet.cost += row.cost_usd; }
     if (row.job_type === 'deepdive') agg.deepDives++;
   }
 
   const monthlyTotal   = monthly.reduce((s, r) => s + r.cost_usd, 0);
   const monthProjected = dayOfMonth > 0 ? (monthlyTotal / dayOfMonth) * 30 : 0;
 
+  // Budget DB has no Opus columns — fold Opus into the Sonnet fields so totals stay whole.
   await logBudget({
     date: today,
     haikuCalls: agg.haiku.calls,   haikuCost: agg.haiku.cost,
-    sonnetCalls: agg.sonnet.calls, sonnetCost: agg.sonnet.cost,
+    sonnetCalls: agg.sonnet.calls + agg.opus.calls,
+    sonnetCost:  agg.sonnet.cost  + agg.opus.cost,
     deepDivesRun: agg.deepDives,
     monthlyTotal, monthProjected, alertThreshold: 100,
   });
 
-  const dailyTotal = agg.haiku.cost + agg.sonnet.cost;
-  console.log(`[budget] daily: $${dailyTotal.toFixed(4)} | monthly projected: $${monthProjected.toFixed(2)}`);
+  const dailyTotal = agg.haiku.cost + agg.sonnet.cost + agg.opus.cost;
+  console.log(`[budget] daily: $${dailyTotal.toFixed(4)} (haiku $${agg.haiku.cost.toFixed(4)} · sonnet $${agg.sonnet.cost.toFixed(4)} · opus $${agg.opus.cost.toFixed(4)}) | monthly projected: $${monthProjected.toFixed(2)}`);
   if (monthProjected > 100) console.warn(`[budget] ALERT: projected $${monthProjected.toFixed(2)} > $100`);
 }
 

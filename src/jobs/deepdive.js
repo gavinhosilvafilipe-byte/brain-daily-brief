@@ -25,7 +25,7 @@ async function run(candidate) {
   const result = await callFn(
     [{ role: 'user', content: prompt }],
     DEEP_DIVE_HTML_SYSTEM, 'deepdive',
-    { cacheContent: true, maxTokens: 5000 }
+    { cacheContent: true, maxTokens: 8192 }
   );
 
   const filename  = `${today}-${ticker.toLowerCase().replace(/[^a-z0-9]/g, '-')}-deepdive.html`;
