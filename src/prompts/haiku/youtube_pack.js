@@ -4,7 +4,7 @@ const PORTFOLIO_TICKERS = [
   'BBAS3','BBSE3','BBDC4','CSMG3','CMIG4','VALE3','ITSA4','POMO4','ITUB4','KLBN11',
   'SAPR4','AURE3','TAEE11','ITUB3',
   'HSML11','XPML11','BTLG11','CPTS11','HSLG11','HGBS11','MXRF11','HGLG11','ALZR11',
-  'BTC','ETH','USDBRL',
+  'USDBRL',
 ];
 
 const SECTOR_MAP = `
@@ -12,7 +12,6 @@ Iron ore / steel / mining → VALE3
 Oil / energy → sector proxy (macro relevance)
 Brazilian banks / credit / Selic → BBAS3 BBDC4 ITUB4
 USD/BRL / Brazil macro / EM / Fed rates → USDBRL BBAS3
-Bitcoin / crypto → BTC ETH
 Real estate / REITs / property → HSML11 XPML11 BTLG11 HGBS11 HGLG11 ALZR11 CPTS11
 Logistics / warehousing → HSLG11 BTLG11
 Utilities / energy / power grid → AURE3 TAEE11 CSMG3 CMIG4

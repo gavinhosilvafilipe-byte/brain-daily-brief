@@ -5,6 +5,7 @@ const { fetchPrices }          = require('../services/portfolio');
 const { getPrecoTeto, getPortfolioPositions, savePortfolioPositions } = require('../services/supabase');
 const { syncPortfolio }        = require('../services/notion');
 const { writeNote }            = require('../services/obsidian');
+const config                   = require('../config');
 
 // Flatten preço-teto computed {stocks:{}, fiis:{}} → {TICKER:{status,teto,margin}}
 function tetoMap(computed) {
@@ -86,6 +87,14 @@ async function run() {
     source = 'Supabase (Portfolio.md unavailable — CI daily MTM off synced copy)';
   }
   if (!positions.length) { console.error('[portfolio-sync] no positions from Portfolio.md or Supabase — abort'); return; }
+
+  // Hide excluded asset classes (e.g. CRYPTO) from sync/brief. Reversible via EXCLUDE_ASSET_CLASSES.
+  const excluded = config.portfolio.excludeAssetClasses || [];
+  if (excluded.length) {
+    const before = positions.length;
+    positions = positions.filter(p => !excluded.includes((p.asset_class || '').toUpperCase()));
+    if (positions.length < before) console.log(`[portfolio-sync] excluded ${before - positions.length} position(s) of class [${excluded.join(', ')}]`);
+  }
   console.log(`[portfolio-sync] ${positions.length} positions from ${source}`);
 
   const fetchList = [...new Set(positions.filter(p => p.asset_class !== 'TESOURO').map(p => p.ticker).concat('USDBRL'))];

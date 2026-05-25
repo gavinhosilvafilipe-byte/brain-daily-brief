@@ -39,8 +39,10 @@ module.exports = {
     apiKey: process.env.FIRECRAWL_API_KEY,
   },
   portfolio: {
-    tickers: (process.env.PORTFOLIO_TICKERS || 'BBAS3,VALE3,PETR4,BTC,USDBRL').split(',').map(s => s.trim()).filter(Boolean),
+    tickers: (process.env.PORTFOLIO_TICKERS || 'BBAS3,VALE3,PETR4,USDBRL').split(',').map(s => s.trim()).filter(Boolean),
     fiiTickers: (process.env.FII_TICKERS || '').split(',').filter(Boolean),
+    // Asset classes hidden from sync/brief (reversible). Default hides CRYPTO.
+    excludeAssetClasses: (process.env.EXCLUDE_ASSET_CLASSES || 'CRYPTO').split(',').map(s => s.trim().toUpperCase()).filter(Boolean),
     bigMoveThreshold: parseFloat(process.env.BIG_MOVE_THRESHOLD || '3.0'),
     ntnbYield: parseFloat(process.env.NTNB_YIELD || '6.5'),
     sectorMultiples: {
