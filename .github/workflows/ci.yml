@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Test
+        run: npm test --if-present
+        env:
+          # Dummy values so module imports don't crash on env-var checks
+          ANTHROPIC_API_KEY: dummy
+          SUPABASE_URL: https://dummy.supabase.co
+          SUPABASE_KEY: dummy
+          NOTION_TOKEN: dummy
+
+      - name: Verify package.json scripts exist
+        run: |
+          for script in ingest analyze brief deepdive distill poll budget; do
+            node -e "const pkg = require('./package.json'); if (!pkg.scripts['$script']) { console.error('Missing script: $script'); process.exit(1); }"
+          done
+          echo "All required npm scripts present ✓"
