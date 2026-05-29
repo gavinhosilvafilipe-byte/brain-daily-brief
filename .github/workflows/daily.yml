@@ -49,6 +49,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check required secrets
+        run: |
+          MISSING=""
+          [[ -z "${ANTHROPIC_API_KEY}" ]]   && MISSING="${MISSING} ANTHROPIC_API_KEY"
+          [[ -z "${NOTION_TOKEN}" ]]         && MISSING="${MISSING} NOTION_TOKEN"
+          [[ -z "${SUPABASE_URL}" ]]         && MISSING="${MISSING} SUPABASE_URL"
+          [[ -z "${SUPABASE_ANON_KEY}" ]]    && MISSING="${MISSING} SUPABASE_ANON_KEY"
+          [[ -z "${GMAIL_CLIENT_ID}" ]]      && MISSING="${MISSING} GMAIL_CLIENT_ID"
+          [[ -z "${GMAIL_CLIENT_SECRET}" ]]  && MISSING="${MISSING} GMAIL_CLIENT_SECRET"
+          [[ -z "${GMAIL_REFRESH_TOKEN}" ]]  && MISSING="${MISSING} GMAIL_REFRESH_TOKEN"
+          [[ -z "${RECIPIENT_EMAIL}" ]]      && MISSING="${MISSING} RECIPIENT_EMAIL"
+          if [[ -n "${MISSING}" ]]; then
+            echo "::error::Missing required secrets:${MISSING}"
+            echo "::error::Fix: repo Settings → Secrets and variables → Actions"
+            exit 1
+          fi
+          echo "All required secrets present"
+
       - name: Run Ingest
         run: npm run ingest
 
